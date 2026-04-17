@@ -62,16 +62,70 @@ A production-ready full-stack video editor + subtitle workstation for editing, s
    cd frontend && npm run dev   # http://localhost:5173
    ```
 
-### Docker Setup
+## 🚀 How to Run Locally
 
-1. **Start with Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
+### Option 1: Docker (Recommended - Full Features)
 
-2. **Access the app**
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:3001
+```bash
+# Start all services (Backend + Frontend + Database + Redis + LibreTranslate)
+docker-compose up --build -d
+
+# Or for development with logs
+docker-compose up --build
+```
+
+**Access after running:**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3001
+
+**Stop services:**
+```bash
+docker-compose down
+```
+
+---
+
+### Option 2: Manual Setup (Node.js)
+
+```bash
+# 1. Install dependencies
+npm install
+cd backend && npm install
+cd ../frontend && npm install
+cd ..
+
+# 2. Copy environment file
+cp .env.example .env
+
+# 3. Start backend (port 3001)
+cd backend && npm run dev
+
+# 4. Start frontend (port 5173) - in new terminal
+cd frontend && npm run dev
+```
+
+---
+
+### Option 3: Vercel (Frontend Only - Limited Features)
+
+```bash
+# Deploy to Vercel for preview (upload/export features won't work)
+npm run build
+# Then deploy the dist folder to Vercel
+```
+
+**Features comparison:**
+
+| Feature | Docker | Manual | Vercel |
+|---------|--------|-------|-------|
+| Video Upload | ✅ | ✅ | ✅ (local) |
+| Subtitle Upload | ✅ | ✅ | ✅ (local) |
+| Auto-extract SRT | ✅ | ✅ | ❌ |
+| Edit SRT | ✅ | ✅ | ✅ |
+| Style Subtitles | ✅ | ✅ | ✅ |
+| Translation | ✅ | ✅ | ❌ |
+| Video Export | ✅ | ✅ | ❌ |
+| Download SRT | ✅ | ✅ | ✅ |
 
 ## Project Structure
 
