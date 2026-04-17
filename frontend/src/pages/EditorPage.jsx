@@ -199,11 +199,17 @@ export default function EditorPage() {
     
     try {
       const response = await fetch(url);
+      if (!response.ok) {
+        console.warn('Failed to load local subtitle, using empty list');
+        setSubtitles([]);
+        return;
+      }
       const text = await response.text();
       const entries = parseSRT(text);
       setSubtitles(entries);
     } catch (err) {
       console.error('Failed to load local subtitle', err);
+      setSubtitles([]);
     }
   };
   
@@ -212,12 +218,22 @@ export default function EditorPage() {
     if (!filename) return;
     
     setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch(`${API_BASE}/subtitle/parse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subtitlePath: filename })
       });
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // Backend not available or error - fall back to local handling
+        console.warn('Backend not available for subtitle parsing');
+        setIsLoading(false);
+        return;
+      }
       
       const data = await response.json();
       
@@ -227,7 +243,8 @@ export default function EditorPage() {
       
       setSubtitles(data.entries || []);
     } catch (err) {
-      setError(err.message);
+      console.warn('Failed to load subtitles from backend:', err.message);
+      // Don't show error - just use empty subtitles
     } finally {
       setIsLoading(false);
     }
