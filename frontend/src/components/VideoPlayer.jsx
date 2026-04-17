@@ -29,17 +29,21 @@ export default function VideoPlayer({
   className = ''
 }) {
   const videoRef = useRef(null);
+  const audioRef = useRef(null);
   const containerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [audioVolume, setAudioVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [activeSubtitle, setActiveSubtitle] = useState(null);
+  const [audioTracks, setAudioTracks] = useState([]);
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState(0);
   
   const hideControlsTimeout = useRef(null);
   
@@ -160,8 +164,39 @@ export default function VideoPlayer({
   const handleLoadedMetadata = useCallback(() => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
+      
+      // Detect audio tracks
+      if (videoRef.current.audioTracks) {
+        const tracks = [];
+        for (let i = 0; i < videoRef.current.audioTracks.length; i++) {
+          tracks.push({
+            index: i,
+            label: videoRef.current.audioTracks[i].label || `Audio Track ${i + 1}`,
+            language: videoRef.current.audioTracks[i].language,
+            enabled: videoRef.current.audioTracks[i].enabled
+          });
+        }
+        setAudioTracks(tracks);
+      }
     }
   }, []);
+  
+  // Handle audio track change
+  const handleAudioTrackChange = useCallback((trackIndex) => {
+    if (videoRef.current && videoRef.current.audioTracks) {
+      for (let i = 0; i < videoRef.current.audioTracks.length; i++) {
+        videoRef.current.audioTracks[i].enabled = (i === trackIndex);
+      }
+      setSelectedAudioTrack(trackIndex);
+    }
+  }, []);
+  
+  // Update audio volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = audioVolume;
+    }
+  }, [audioVolume]);
   
   const handleMouseMove = useCallback(() => {
     setShowControls(true);
@@ -309,6 +344,42 @@ export default function VideoPlayer({
                 value={isMuted ? 0 : volume}
                 onChange={(e) => setVolume(parseFloat(e.target.value))}
                 className="w-20"
+                title="Volume"
+              />
+            </div>
+            
+            {/* Audio Track Selector */}
+            {audioTracks.length > 1 && (
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10c0-1.105 1.343-2 3-2s3 .895 3 2" />
+                </svg>
+                <select
+                  value={selectedAudioTrack}
+                  onChange={(e) => handleAudioTrackChange(parseInt(e.target.value))}
+                  className="px-2 py-1 rounded bg-primary border border-border text-sm"
+                >
+                  {audioTracks.map((track, i) => (
+                    <option key={i} value={i}>
+                      {track.label || `Track ${i + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {/* Audio Volume */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-text-secondary">Vol</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.1}
+                value={audioVolume}
+                onChange={(e) => setAudioVolume(parseFloat(e.target.value))}
+                className="w-16"
+                title={`Audio: ${Math.round(audioVolume * 100)}%`}
               />
             </div>
             
