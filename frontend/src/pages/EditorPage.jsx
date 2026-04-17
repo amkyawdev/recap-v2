@@ -105,10 +105,10 @@ export default function EditorPage() {
         body: formData
       });
       
-      // Check if response is HTML (backend not running)
+      // Check if response is JSON before parsing
       const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('json')) {
-        throw new Error('Backend not available. Please run locally with Docker for upload features.');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Backend not available');
       }
       
       const data = await response.json();
@@ -146,7 +146,7 @@ export default function EditorPage() {
       });
       
       const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('json')) {
+      if (!contentType || !contentType.includes('application/json')) {
         throw new Error('Backend not available');
       }
       

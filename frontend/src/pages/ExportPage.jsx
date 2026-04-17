@@ -80,7 +80,7 @@ export default function ExportPage() {
       });
       
       const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('json')) {
+      if (!contentType || !contentType.includes('application/json')) {
         // Handle local file
         const url = URL.createObjectURL(file);
         setVideoFile({ filename: file.name, url });
@@ -115,7 +115,7 @@ export default function ExportPage() {
       });
       
       const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('json')) {
+      if (!contentType || !contentType.includes('application/json')) {
         // Handle local SRT
         const text = await file.text();
         const entries = parseLocalSRT(text);
@@ -168,6 +168,19 @@ export default function ExportPage() {
       return;
     }
     
+    // Check if backend is available first
+    try {
+      const healthCheck = await fetch(`${API_BASE}/health`, { method: 'GET' });
+      const contentType = healthCheck.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        setError('Export requires backend server. Please run with Docker.');
+        return;
+      }
+    } catch (e) {
+      setError('Export requires backend server. Please run with Docker.');
+      return;
+    }
+    
     setIsExporting(true);
     setError(null);
     setExportProgress(0);
@@ -181,6 +194,11 @@ export default function ExportPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ entries: subtitles })
         });
+        
+        const saveContentType = saveResponse.headers.get('content-type');
+        if (!saveContentType || !saveContentType.includes('application/json')) {
+          throw new Error('Backend not available');
+        }
         
         const saveData = await saveResponse.json();
         
@@ -205,6 +223,11 @@ export default function ExportPage() {
           })
         });
         
+        const respContentType = response.headers.get('content-type');
+        if (!respContentType || !respContentType.includes('application/json')) {
+          throw new Error('Backend not available');
+        }
+        
         const data = await response.json();
         
         if (!response.ok) {
@@ -221,6 +244,11 @@ export default function ExportPage() {
             subtitlePath: subtitleFile?.filename || subtitles[0]?.filename
           })
         });
+        
+        const respContentType = response.headers.get('content-type');
+        if (!respContentType || !respContentType.includes('application/json')) {
+          throw new Error('Backend not available');
+        }
         
         const data = await response.json();
         
