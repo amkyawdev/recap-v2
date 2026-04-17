@@ -15,6 +15,11 @@ export default function Dashboard() {
     setIsLoading(true);
     setError(null);
     
+    // First save to localStorage immediately (sync)
+    const url = URL.createObjectURL(file);
+    const fileData = { filename: file.name, url };
+    localStorage.setItem('videoFile', JSON.stringify(fileData));
+    
     try {
       const formData = new FormData();
       formData.append('video', file);
@@ -27,11 +32,8 @@ export default function Dashboard() {
       // Check if backend is available
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('json')) {
-        // Backend not available - use local file
-        const url = URL.createObjectURL(file);
-        const fileData = { filename: file.name, url };
+        // Backend not available - use local file (already saved)
         setVideoFile(fileData);
-        localStorage.setItem('videoFile', JSON.stringify(fileData));
         
         // Redirect to editor
         window.location.href = '/editor';
@@ -50,11 +52,8 @@ export default function Dashboard() {
       // Redirect to editor
       window.location.href = '/editor';
     } catch (err) {
-      // Handle as local file
-      const url = URL.createObjectURL(file);
-      const fileData = { filename: file.name, url };
+      // Use local file (already saved in localStorage)
       setVideoFile(fileData);
-      localStorage.setItem('videoFile', JSON.stringify(fileData));
       
       // Redirect to editor
       window.location.href = '/editor';
