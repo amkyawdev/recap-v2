@@ -14,6 +14,7 @@ services:
       - NODE_ENV=production
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
       - redis
     restart: unless-stopped
@@ -37,16 +38,6 @@ services:
     volumes:
       - redis-data:/data
     restart: unless-stopped
-
-  # Optional: LibreTranslate for subtitle translation
-  # libretranslate:
-  #   image: libretranslate/libretranslate
-  #   ports:
-  #     - "5000:5000"
-  #   environment:
-  #     - LT_LOADBALANCE_URL=
-  #     - FRONTEND_URL=http://localhost:5173
-  #   restart: unless-stopped
 
 volumes:
   redis-data:
