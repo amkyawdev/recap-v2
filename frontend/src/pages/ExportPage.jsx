@@ -25,7 +25,7 @@ export default function ExportPage() {
   const [exportResult, setExportResult] = useState(null);
   const [error, setError] = useState(null);
   
-  // Load saved data
+  // Load saved data or show upload
   useEffect(() => {
     const savedVideo = localStorage.getItem('videoFile');
     const savedSubtitle = localStorage.getItem('subtitleFile');
