@@ -24,6 +24,20 @@ export default function Dashboard() {
         body: formData
       });
       
+      // Check if backend is available
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('json')) {
+        // Backend not available - use local file
+        const url = URL.createObjectURL(file);
+        const fileData = { filename: file.name, url };
+        setVideoFile(fileData);
+        localStorage.setItem('videoFile', JSON.stringify(fileData));
+        
+        // Redirect to editor
+        window.location.href = '/editor';
+        return;
+      }
+      
       const data = await response.json();
       
       if (!response.ok) {
@@ -31,11 +45,19 @@ export default function Dashboard() {
       }
       
       setVideoFile(data.file);
-      
-      // Store in localStorage for persistence
       localStorage.setItem('videoFile', JSON.stringify(data.file));
+      
+      // Redirect to editor
+      window.location.href = '/editor';
     } catch (err) {
-      setError(err.message);
+      // Handle as local file
+      const url = URL.createObjectURL(file);
+      const fileData = { filename: file.name, url };
+      setVideoFile(fileData);
+      localStorage.setItem('videoFile', JSON.stringify(fileData));
+      
+      // Redirect to editor
+      window.location.href = '/editor';
     } finally {
       setIsLoading(false);
     }
