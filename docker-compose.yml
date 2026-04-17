@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend/uploads:/app/uploads
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  # Optional: LibreTranslate for subtitle translation
+  # libretranslate:
+  #   image: libretranslate/libretranslate
+  #   ports:
+  #     - "5000:5000"
+  #   environment:
+  #     - LT_LOADBALANCE_URL=
+  #     - FRONTEND_URL=http://localhost:5173
+  #   restart: unless-stopped
+
+volumes:
+  redis-data:
+
+networks:
+  default:
+    name: movie-recap-network
