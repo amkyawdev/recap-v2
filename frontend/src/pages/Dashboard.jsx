@@ -1,149 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import MovieUploader from '../components/MovieUploader';
 
 const API_BASE = '/api';
 
 export default function Dashboard() {
   const [videoFile, setVideoFile] = useState(null);
-  const [subtitleFile, setSubtitleFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [projectData, setProjectData] = useState(null);
   const [error, setError] = useState(null);
   
-  const handleVideoUpload = async (file) => {
-    setIsLoading(true);
-    setError(null);
-    
-    // First save to localStorage immediately (sync)
-    const url = URL.createObjectURL(file);
-    const fileData = { filename: file.name, url };
-    localStorage.setItem('videoFile', JSON.stringify(fileData));
-    
-    try {
-      const formData = new FormData();
-      formData.append('video', file);
-      
-      const response = await fetch(`${API_BASE}/upload/video`, {
-        method: 'POST',
-        body: formData
-      });
-      
-      // Check if backend is available
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('json')) {
-        // Backend not available - use local file (already saved)
-        setVideoFile(fileData);
-        
-        // Redirect to editor
-        window.location.href = '/editor';
-        return;
+  // Check if video was already loaded
+  useEffect(() => {
+    const savedVideo = localStorage.getItem('videoFile');
+    if (savedVideo) {
+      try {
+        const video = JSON.parse(savedVideo);
+        setVideoFile(video);
+      } catch (e) {
+        console.error('Failed to parse saved video', e);
       }
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-      
-      setVideoFile(data.file);
-      localStorage.setItem('videoFile', JSON.stringify(data.file));
-      
-      // Redirect to editor
-      window.location.href = '/editor';
-    } catch (err) {
-      // Use local file (already saved in localStorage)
-      setVideoFile(fileData);
-      
-      // Redirect to editor
-      window.location.href = '/editor';
-    } finally {
-      setIsLoading(false);
     }
-  };
-  
-  const handleSubtitleUpload = async (file) => {
-    setIsLoading(true);
-    setError(null);
-    
-    // Save to localStorage immediately (sync)
-    const fileData = { filename: file.name };
-    localStorage.setItem('subtitleFile', JSON.stringify(fileData));
-    
-    try {
-      const formData = new FormData();
-      formData.append('subtitle', file);
-      
-      const response = await fetch(`${API_BASE}/upload/subtitle`, {
-        method: 'POST',
-        body: formData
-      });
-      
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('json')) {
-        // Backend not available - use local file
-        setSubtitleFile(fileData);
-        return;
-      }
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-      
-      setSubtitleFile(data.file);
-      localStorage.setItem('subtitleFile', JSON.stringify(data.file));
-    } catch (err) {
-      // Use local file
-      setSubtitleFile(fileData);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, []);
   
   const handleStartEditing = () => {
     if (videoFile) {
-      // Navigate to editor
       window.location.href = '/editor';
     }
   };
   
-  const handleAutoExtract = async () => {
-    if (!videoFile) {
-      setError('Please upload a video first');
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch(`${API_BASE}/subtitle/extract-srt`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoFilename: videoFile.filename })
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Extraction failed');
-      }
-      
-      setSubtitleFile({ filename: data.srtFilename });
-      localStorage.setItem('subtitleFile', JSON.stringify({ filename: data.srtFilename }));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleLoadSample = () => {
+    const url = '/exp.mp4';
+    const fileData = { filename: 'exp.mp4', url };
+    localStorage.setItem('videoFile', JSON.stringify(fileData));
+    setVideoFile(fileData);
   };
   
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Hero section */}
-      <div className="text-center mb-12">
+      <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4">
           Movie Recap <span className="text-accent">App</span>
         </h1>
@@ -152,39 +46,55 @@ export default function Dashboard() {
         </p>
       </div>
       
-      {/* Upload section */}
+      {/* Promotional Video Banner */}
       <div className="mb-8">
-        <MovieUploader
-          onVideoUpload={handleVideoUpload}
-          onSubtitleUpload={handleSubtitleUpload}
-          isLoading={isLoading}
-        />
-      </div>
-      
-      {/* Quick actions */}
-      {videoFile && (
-        <div className="mb-8 animate-slideUp">
-          <div className="bg-secondary rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                to="/editor"
-                className="px-4 py-2 rounded-lg bg-accent text-primary font-medium hover:bg-accent/80 transition-colors"
-              >
-                Open in Editor
-              </Link>
-              
-              <button
-                onClick={handleAutoExtract}
-                disabled={isLoading}
-                className="px-4 py-2 rounded-lg border border-border hover:bg-border transition-colors disabled:opacity-50"
-              >
-                Auto-extract Subtitles
-              </button>
+        <div className="relative rounded-xl overflow-hidden bg-secondary">
+          <video
+            src="/exp.mp4"
+            className="w-full aspect-video object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            onError={(e) => {
+              e.target.style.display = 'none';
+              // Show fallback gradient
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+          <div className="hidden absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent items-center justify-center">
+            <div className="text-center">
+              <p className="text-text-secondary text-lg">Sample Video</p>
+            </div>
+          </div>
+          
+          {/* Overlay content */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-primary/90 to-transparent">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold mb-1">Create Amazing Videos</h2>
+                <p className="text-text-secondary text-sm">Edit subtitles, add overlays, and export in minutes</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleLoadSample}
+                  className="px-4 py-2 rounded-lg border border-border hover:bg-border transition-colors"
+                >
+                  Try Sample
+                </button>
+                {videoFile && (
+                  <Link
+                    to="/editor"
+                    className="px-4 py-2 rounded-lg bg-accent text-primary font-medium hover:bg-accent/80 transition-colors"
+                  >
+                    Open Editor
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
       
       {/* Features */}
       <div className="grid md:grid-cols-3 gap-6">

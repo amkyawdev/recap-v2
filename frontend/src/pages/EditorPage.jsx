@@ -279,6 +279,35 @@ export default function EditorPage() {
     <div className="h-[calc(100vh-65px)] flex flex-col lg:flex-row">
       {/* Left panel - Video Player */}
       <div className="flex-1 flex flex-col p-4 lg:w-2/3">
+        {/* Upload button - always visible */}
+        <div className="mb-4 flex items-center gap-2">
+          <label className="px-3 py-1.5 rounded-lg border border-border hover:bg-border transition-colors cursor-pointer text-sm flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Upload Movie
+            <input
+              type="file"
+              accept="video/*,.mp4,.mov,.avi,.mkv,.webm"
+              onChange={handleVideoUpload}
+              className="hidden"
+            />
+          </label>
+          
+          <label className="px-3 py-1.5 rounded-lg border border-border hover:bg-border transition-colors cursor-pointer text-sm flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+            </svg>
+            Upload SRT
+            <input
+              type="file"
+              accept=".srt,.vtt"
+              onChange={handleSubtitleUpload}
+              className="hidden"
+            />
+          </label>
+        </div>
+        
         {videoFile ? (
           <div className="flex-1 flex flex-col">
             <VideoPlayer
