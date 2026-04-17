@@ -39,6 +39,11 @@ export default function EditorPage() {
       } catch (e) {
         console.error('Failed to parse saved video', e);
       }
+    } else {
+      // Auto-load sample video for demo
+      const url = '/exp.mp4';
+      const fileData = { filename: 'exp.mp4', url };
+      setVideoFile(fileData);
     }
     
     if (savedSubtitle) {
@@ -307,6 +312,19 @@ export default function EditorPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
               <p className="text-text-secondary mb-4">Upload a video to start editing</p>
+              
+              {/* Sample video button */}
+              <button
+                onClick={() => {
+                  const url = '/exp.mp4';
+                  const fileData = { filename: 'exp.mp4', url };
+                  localStorage.setItem('videoFile', JSON.stringify(fileData));
+                  window.location.href = '/editor';
+                }}
+                className="mb-4 px-4 py-2 bg-accent text-primary rounded-lg font-medium hover:bg-accent/80"
+              >
+                Try Sample Video
+              </button>
               
               {/* Direct upload form */}
               <div className="space-y-4">
