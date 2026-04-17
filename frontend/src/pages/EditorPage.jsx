@@ -29,10 +29,13 @@ export default function EditorPage() {
   useEffect(() => {
     const savedVideo = localStorage.getItem('videoFile');
     const savedSubtitle = localStorage.getItem('subtitleFile');
+    const savedSubtitles = localStorage.getItem('editedSubtitles');
+    const savedStyle = localStorage.getItem('subtitleStyle');
     
     if (savedVideo) {
       try {
-        setVideoFile(JSON.parse(savedVideo));
+        const video = JSON.parse(savedVideo);
+        setVideoFile(video);
       } catch (e) {
         console.error('Failed to parse saved video', e);
       }
@@ -42,10 +45,35 @@ export default function EditorPage() {
       try {
         const sub = JSON.parse(savedSubtitle);
         setSubtitleFile(sub);
-        // Parse the subtitle file
-        loadSubtitles(sub.filename || sub.path);
+        // If it has a URL, it's a local blob - read it directly
+        if (sub.url) {
+          loadLocalSubtitle(sub.url);
+        } else if (sub.filename) {
+          loadSubtitles(sub.filename);
+        }
       } catch (e) {
         console.error('Failed to parse saved subtitle', e);
+      }
+    }
+    
+    // Load edited subtitles from previous session
+    if (savedSubtitles) {
+      try {
+        const subs = JSON.parse(savedSubtitles);
+        if (subs.length > 0) {
+          setSubtitles(subs);
+        }
+      } catch (e) {
+        console.error('Failed to parse edited subtitles', e);
+      }
+    }
+    
+    // Load subtitle style
+    if (savedStyle) {
+      try {
+        setSubtitleStyle(JSON.parse(savedStyle));
+      } catch (e) {
+        console.error('Failed to parse subtitle style', e);
       }
     }
   }, []);
@@ -155,6 +183,21 @@ export default function EditorPage() {
     return entries;
   };
   
+  // Load local subtitle from blob URL
+  const loadLocalSubtitle = async (url) => {
+    if (!url) return;
+    
+    try {
+      const response = await fetch(url);
+      const text = await response.text();
+      const entries = parseSRT(text);
+      setSubtitles(entries);
+    } catch (err) {
+      console.error('Failed to load local subtitle', err);
+    }
+  };
+  
+  // Load subtitles from backend
   const loadSubtitles = async (filename) => {
     if (!filename) return;
     
