@@ -73,6 +73,11 @@ export default function EditorPage() {
       }
     }
     
+    // Auto-load sample SRT if no saved subtitles
+    if (!savedSubtitles && !savedSubtitle) {
+      loadLocalSubtitle('/sample.srt');
+    }
+    
     // Load subtitle style
     if (savedStyle) {
       try {
