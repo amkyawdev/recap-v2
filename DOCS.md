@@ -150,10 +150,27 @@ GET  /api/subtitle/extract/:filename    - List embedded subs
 POST /api/subtitle/extract-srt       - Extract to SRT
 POST /api/subtitle/parse            - Parse SRT
 POST /api/subtitle/save            - Save SRT
-POST /api/subtitle/translate       - Translate
-POST /api/subtitle/merge           - Merge entries
-POST /api/subtitle/split          - Split entry
+POST /api/subtitle/translate      - Translate (Mistral AI)
+POST /api/subtitle/merge          - Merge entries
+POST /api/subtitle/split         - Split entry
 ```
+
+#### Translation API (Mistral AI)
+
+```javascript
+const response = await fetch('/api/subtitle/translate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    entries: subtitles,
+    targetLanguage: 'my',  // Myanmar (default)
+    sourceLanguage: 'en'   // English
+  })
+});
+const { entries, model, targetLanguage } = await response.json();
+```
+
+**Supported Languages:** `my`, `en`, `zh`, `ja`, `ko`, `th`, `lo`
 
 ---
 

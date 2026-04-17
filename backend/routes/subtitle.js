@@ -222,62 +222,103 @@ router.post('/save', (req, res) => {
   }
 });
 
-// Simple translation using LibreTranslate API (or similar)
+// Translation using Mistral AI (8x7B model)
 router.post('/translate', async (req, res) => {
   try {
-    const { entries, targetLanguage = 'en', sourceLanguage = 'auto' } = req.body;
+    const { entries, targetLanguage = 'my', sourceLanguage = 'en' } = req.body;
     
     if (!entries || !Array.isArray(entries)) {
       return res.status(400).json({ error: 'entries array is required' });
     }
     
-    // Get translation API from env or use default LibreTranslate
-    const translateApi = process.env.TRANSLATION_API || 'https://libretranslate.com/translate';
-    const apiKey = process.env.TRANSLATION_API_KEY;
+    // Get Mistral API key
+    const mistralApiKey = process.env.AmkyawDev_Kay || process.env.MISTRAL_API_KEY;
     
-    const translatedEntries = [];
-    
-    for (const entry of entries) {
-      try {
-        const response = await fetch(translateApi, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {})
-          },
-          body: JSON.stringify({
-            q: entry.text,
-            source: sourceLanguage,
-            target: targetLanguage,
-            format: 'text'
-          })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          translatedEntries.push({
-            ...entry,
-            originalText: entry.text,
-            text: data.translatedText
-          });
-        } else {
-          // Fallback: keep original
-          translatedEntries.push(entry);
-        }
-      } catch (fetchError) {
-        // Keep original on error
-        translatedEntries.push(entry);
-      }
+    if (!mistralApiKey) {
+      return res.status(500).json({ error: 'Mistral API key not configured' });
     }
+    
+    const languageNames = {
+      'my': 'Myanmar',
+      'en': 'English',
+      'zh': 'Chinese',
+      'ja': 'Japanese',
+      'ko': 'Korean',
+      'th': 'Thai',
+      'lo': 'Lao'
+    };
+    
+    const targetLang = languageNames[targetLanguage] || targetLanguage;
+    const sourceLang = languageNames[sourceLanguage] || sourceLanguage;
+    
+    // Build translation prompt
+    const subtitleTexts = entries.map((e, i) => `${i + 1}. ${e.text}`).join('\n');
+    
+    const prompt = `Translate the following ${sourceLang} subtitles to ${targetLang}. 
+Only translate the text, keep the numbering format. 
+Return ONLY the translated text, no explanations:
+
+${subtitleTexts}`;
+    
+    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${mistralApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'mistral-small-latest',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 4000
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Mistral API error:', errorData);
+      throw new Error(errorData.message || 'Translation API failed');
+    }
+    
+    const data = await response.json();
+    const translatedText = data.choices?.[0]?.message?.content || '';
+    
+    // Parse translated text back to entries
+    const lines = translatedText.trim().split('\n');
+    const translatedEntries = entries.map((entry, index) => {
+      let text = entry.text;
+      
+      // Try to find matching translated line
+      for (const line of lines) {
+        const match = line.match(/^\d+\.\s*(.+)$/);
+        if (match) {
+          text = match[1].trim();
+          break;
+        }
+      }
+      
+      return {
+        ...entry,
+        originalText: entry.text,
+        text
+      };
+    });
     
     res.json({
       success: true,
       sourceLanguage,
       targetLanguage,
       entries: translatedEntries,
-      count: translatedEntries.length
+      count: translatedEntries.length,
+      model: 'mistral-small-latest'
     });
   } catch (error) {
+    console.error('Translation error:', error);
     res.status(500).json({ error: 'Translation failed', message: error.message });
   }
 });
