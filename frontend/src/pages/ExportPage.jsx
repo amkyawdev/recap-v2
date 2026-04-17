@@ -294,6 +294,23 @@ export default function ExportPage() {
     }
   };
   
+  // Get video URL - supports both blob URL and backend URL
+  const getVideoSrc = () => {
+    if (videoFile?.url) return videoFile.url;
+    if (videoFile?.filename) return `/uploads/${videoFile.filename}`;
+    return '';
+  };
+  
+  // Get subtitle URL
+  const getSubtitleSrc = () => {
+    // If we have edited subtitles (from Editor), don't show original SRT file
+    if (subtitles.length > 0) return '';
+    
+    if (subtitleFile?.url) return subtitleFile.url;
+    if (subtitleFile?.filename) return `/uploads/${subtitleFile.filename}`;
+    return '';
+  };
+  
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-2">Export</h1>

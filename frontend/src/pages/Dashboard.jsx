@@ -66,6 +66,10 @@ export default function Dashboard() {
     setIsLoading(true);
     setError(null);
     
+    // Save to localStorage immediately (sync)
+    const fileData = { filename: file.name };
+    localStorage.setItem('subtitleFile', JSON.stringify(fileData));
+    
     try {
       const formData = new FormData();
       formData.append('subtitle', file);
@@ -74,6 +78,13 @@ export default function Dashboard() {
         method: 'POST',
         body: formData
       });
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('json')) {
+        // Backend not available - use local file
+        setSubtitleFile(fileData);
+        return;
+      }
       
       const data = await response.json();
       
@@ -84,7 +95,8 @@ export default function Dashboard() {
       setSubtitleFile(data.file);
       localStorage.setItem('subtitleFile', JSON.stringify(data.file));
     } catch (err) {
-      setError(err.message);
+      // Use local file
+      setSubtitleFile(fileData);
     } finally {
       setIsLoading(false);
     }
