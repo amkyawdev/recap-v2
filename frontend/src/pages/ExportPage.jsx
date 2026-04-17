@@ -79,13 +79,25 @@ export default function ExportPage() {
         body: formData
       });
       
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('json')) {
+        // Handle local file
+        const url = URL.createObjectURL(file);
+        setVideoFile({ filename: file.name, url });
+        localStorage.setItem('videoFile', JSON.stringify({ filename: file.name, url }));
+        return;
+      }
+      
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       
       setVideoFile(data.file);
       localStorage.setItem('videoFile', JSON.stringify(data.file));
     } catch (err) {
-      setError(err.message);
+      // Handle local file
+      const url = URL.createObjectURL(file);
+      setVideoFile({ filename: file.name, url });
+      localStorage.setItem('videoFile', JSON.stringify({ filename: file.name, url }));
     }
   };
   
@@ -102,14 +114,52 @@ export default function ExportPage() {
         body: formData
       });
       
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('json')) {
+        // Handle local SRT
+        const text = await file.text();
+        const entries = parseLocalSRT(text);
+        setSubtitles(entries);
+        setSubtitleFile({ filename: file.name });
+        localStorage.setItem('subtitleFile', JSON.stringify({ filename: file.name }));
+        return;
+      }
+      
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       
       setSubtitleFile(data.file);
       localStorage.setItem('subtitleFile', JSON.stringify(data.file));
     } catch (err) {
-      setError(err.message);
+      // Handle local SRT
+      const text = await file.text();
+      const entries = parseLocalSRT(text);
+      setSubtitles(entries);
+      setSubtitleFile({ filename: file.name });
+      localStorage.setItem('subtitleFile', JSON.stringify({ filename: file.name }));
     }
+  };
+  
+  // Parse SRT client-side
+  const parseLocalSRT = (srtText) => {
+    const entries = [];
+    const blocks = srtText.trim().split(/\n\n+/);
+    
+    for (const block of blocks) {
+      const lines = block.split('\n');
+      if (lines.length >= 3) {
+        const timeMatch = lines[1].match(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2}),(\d{3})/);
+        if (timeMatch) {
+          entries.push({
+            index: entries.length + 1,
+            startTime: parseInt(timeMatch[1]) * 3600 + parseInt(timeMatch[2]) * 60 + parseInt(timeMatch[3]) + parseInt(timeMatch[4]) / 1000,
+            endTime: parseInt(timeMatch[5]) * 3600 + parseInt(timeMatch[6]) * 60 + parseInt(timeMatch[7]) + parseInt(timeMatch[8]) / 1000,
+            text: lines.slice(2).join('\n')
+          });
+        }
+      }
+    }
+    return entries;
   };
   
   const handleExport = async () => {
@@ -274,15 +324,15 @@ export default function ExportPage() {
             
             <div className="relative bg-primary rounded-lg overflow-hidden">
               <video
-                src={`/uploads/${videoFile?.filename}`}
+                src={getVideoSrc()}
                 controls
                 className="w-full max-h-[400px]"
                 crossOrigin="anonymous"
               >
-                {subtitleFile?.filename && (
+                {subtitleFile && (
                   <track
                     kind="subtitles"
-                    src={`/uploads/${subtitleFile?.filename}`}
+                    src={getSubtitleSrc()}
                     default
                   />
                 )}
@@ -496,16 +546,14 @@ export default function ExportPage() {
               </button>
             )}
             
-            {/* Download original video preview */}
+            {/* Download original */}
             {videoFile && (
-              <a
-                href={`/uploads/${videoFile.filename}`}
-                download
-                target="_blank"
-                className="px-6 py-3 rounded-lg border border-border hover:bg-border transition-colors inline-flex items-center"
+              <button
+                onClick={downloadOriginal}
+                className="px-6 py-3 rounded-lg border border-border hover:bg-border transition-colors"
               >
                 Download Original
-              </a>
+              </button>
             )}
             
             {subtitles.length > 0 && (

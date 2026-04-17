@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import VideoPlayer from '../components/VideoPlayer';
 import SubtitleEditor from '../components/SubtitleEditor';
@@ -67,6 +67,12 @@ export default function EditorPage() {
         body: formData
       });
       
+      // Check if response is HTML (backend not running)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('json')) {
+        throw new Error('Backend not available. Please run locally with Docker for upload features.');
+      }
+      
       const data = await response.json();
       
       if (!response.ok) {
@@ -76,7 +82,10 @@ export default function EditorPage() {
       setVideoFile(data.file);
       localStorage.setItem('videoFile', JSON.stringify(data.file));
     } catch (err) {
-      setError(err.message);
+      // Handle as local file for preview only
+      const url = URL.createObjectURL(file);
+      setVideoFile({ filename: file.name, url });
+      localStorage.setItem('videoFile', JSON.stringify({ filename: file.name, url }));
     } finally {
       setIsLoading(false);
     }
@@ -98,6 +107,11 @@ export default function EditorPage() {
         body: formData
       });
       
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('json')) {
+        throw new Error('Backend not available');
+      }
+      
       const data = await response.json();
       
       if (!response.ok) {
@@ -106,14 +120,39 @@ export default function EditorPage() {
       
       setSubtitleFile(data.file);
       localStorage.setItem('subtitleFile', JSON.stringify(data.file));
-      
-      // Load subtitles
       loadSubtitles(data.file.filename);
     } catch (err) {
-      setError(err.message);
+      // Handle local SRT file
+      const text = await file.text();
+      const entries = parseSRT(text);
+      setSubtitles(entries);
+      setSubtitleFile({ filename: file.name });
+      localStorage.setItem('subtitleFile', JSON.stringify({ filename: file.name }));
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Parse SRT client-side
+  const parseSRT = (srtText) => {
+    const entries = [];
+    const blocks = srtText.trim().split(/\n\n+/);
+    
+    for (const block of blocks) {
+      const lines = block.split('\n');
+      if (lines.length >= 3) {
+        const timeMatch = lines[1].match(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2}),(\d{3})/);
+        if (timeMatch) {
+          entries.push({
+            index: entries.length + 1,
+            startTime: parseInt(timeMatch[1]) * 3600 + parseInt(timeMatch[2]) * 60 + parseInt(timeMatch[3]) + parseInt(timeMatch[4]) / 1000,
+            endTime: parseInt(timeMatch[5]) * 3600 + parseInt(timeMatch[6]) * 60 + parseInt(timeMatch[7]) + parseInt(timeMatch[8]) / 1000,
+            text: lines.slice(2).join('\n')
+          });
+        }
+      }
+    }
+    return entries;
   };
   
   const loadSubtitles = async (filename) => {
@@ -181,7 +220,12 @@ export default function EditorPage() {
     setCurrentTime(time);
   };
   
-  const videoSrc = videoFile ? `/uploads/${videoFile.filename}` : '';
+  // Get video URL - supports local blob URLs
+  const videoSrc = useMemo(() => {
+    if (!videoFile) return '';
+    if (videoFile.url) return videoFile.url;
+    return `/uploads/${videoFile.filename}`;
+  }, [videoFile]);
   
   return (
     <div className="h-[calc(100vh-65px)] flex flex-col lg:flex-row">
