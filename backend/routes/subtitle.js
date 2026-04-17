@@ -222,7 +222,7 @@ router.post('/save', (req, res) => {
   }
 });
 
-// Translation using Mistral AI (8x7B model)
+// Translation using Groq API (Fast LLM)
 router.post('/translate', async (req, res) => {
   try {
     const { entries, sourceLanguage = 'en' } = req.body;
@@ -232,15 +232,15 @@ router.post('/translate', async (req, res) => {
       return res.status(400).json({ error: 'entries array is required' });
     }
     
-    // Get Mistral API key
-    const mistralApiKey = process.env.AmkyawDev_Kay || process.env.MISTRAL_API_KEY;
+    // Get Groq API key
+    const groqApiKey = process.env.GROQ_API_KEY || process.env.AmkyawDev_Kay;
     
-    if (!mistralApiKey) {
-      return res.status(500).json({ error: 'Mistral API key not configured' });
+    if (!groqApiKey) {
+      return res.status(500).json({ error: 'GROQ_API_KEY not configured' });
     }
     
     const languageNames = {
-      'my': 'Myanmar',
+      'my': 'Burmese (Myanmar)',
       'en': 'English',
       'zh': 'Chinese',
       'ja': 'Japanese',
@@ -255,20 +255,20 @@ router.post('/translate', async (req, res) => {
     // Build translation prompt
     const subtitleTexts = entries.map((e, i) => `${i + 1}. ${e.text}`).join('\n');
     
-    const prompt = `Translate the following ${sourceLang} subtitles to ${targetLang}. 
-Only translate the text, keep the numbering format. 
+    const prompt = `Translate these ${sourceLang} subtitles to ${targetLang}.
+Keep the numbering format (1., 2., etc.)
 Return ONLY the translated text, no explanations:
 
 ${subtitleTexts}`;
     
-    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${mistralApiKey}`
+        'Authorization': `Bearer ${groqApiKey}`
       },
       body: JSON.stringify({
-        model: 'mistral-small-latest',
+        model: 'llama-3.1-70b-versatile',
         messages: [
           {
             role: 'user',
@@ -282,8 +282,8 @@ ${subtitleTexts}`;
     
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Mistral API error:', errorData);
-      throw new Error(errorData.message || 'Translation API failed');
+      console.error('Groq API error:', errorData);
+      throw new Error(errorData.error?.message || 'Translation API failed');
     }
     
     const data = await response.json();
@@ -316,7 +316,7 @@ ${subtitleTexts}`;
       targetLanguage,
       entries: translatedEntries,
       count: translatedEntries.length,
-      model: 'mistral-small-latest'
+      model: 'llama-3.1-70b-versatile'
     });
   } catch (error) {
     console.error('Translation error:', error);
