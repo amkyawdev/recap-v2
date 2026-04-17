@@ -65,6 +65,53 @@ export default function ExportPage() {
     }
   }, []);
   
+  // Upload handlers
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+      
+      const response = await fetch(`${API_BASE}/upload/video`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      
+      setVideoFile(data.file);
+      localStorage.setItem('videoFile', JSON.stringify(data.file));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  
+  const handleSubtitleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const formData = new FormData();
+      formData.append('subtitle', file);
+      
+      const response = await fetch(`${API_BASE}/upload/subtitle`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      
+      setSubtitleFile(data.file);
+      localStorage.setItem('subtitleFile', JSON.stringify(data.file));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  
   const handleExport = async () => {
     if (!videoFile) {
       setError('No video file loaded');
@@ -181,13 +228,31 @@ export default function ExportPage() {
           <svg className="w-16 h-16 mx-auto mb-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
-          <p className="text-text-secondary mb-4">No video loaded</p>
-          <Link
-            to="/"
-            className="px-4 py-2 rounded-lg bg-accent text-primary font-medium hover:bg-accent/80 transition-colors"
-          >
-            Go to Dashboard
-          </Link>
+          <p className="text-text-secondary mb-4">Upload a video to start exporting</p>
+          
+          {/* Direct upload */}
+          <div className="max-w-md mx-auto space-y-4">
+            <div>
+              <label className="block mb-2 text-sm font-medium">Video File</label>
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleVideoUpload}
+                className="w-full text-sm text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-accent file:text-primary file:font-medium hover:file:bg-accent/80"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 text-sm font-medium">Subtitle File (optional)</label>
+              <input
+                type="file"
+                accept=".srt"
+                onChange={handleSubtitleUpload}
+                className="w-full text-sm text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-border file:text-text-primary file:font-medium hover:file:bg-border/80"
+              />
+            </div>
+          </div>
+          
+          {error && <p className="mt-4 text-red-500 text-sm">{error}</p>}
         </div>
       ) : (
         <div className="space-y-6">

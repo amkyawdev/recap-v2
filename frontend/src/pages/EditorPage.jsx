@@ -50,6 +50,72 @@ export default function EditorPage() {
     }
   }, []);
   
+  // Upload handlers - direct from editor page
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+      
+      const response = await fetch(`${API_BASE}/upload/video`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+      
+      setVideoFile(data.file);
+      localStorage.setItem('videoFile', JSON.stringify(data.file));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleSubtitleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('subtitle', file);
+      
+      const response = await fetch(`${API_BASE}/upload/subtitle`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+      
+      setSubtitleFile(data.file);
+      localStorage.setItem('subtitleFile', JSON.stringify(data.file));
+      
+      // Load subtitles
+      loadSubtitles(data.file.filename);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const loadSubtitles = async (filename) => {
     if (!filename) return;
     
@@ -149,17 +215,35 @@ export default function EditorPage() {
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-secondary rounded-xl">
-            <div className="text-center">
+            <div className="text-center max-w-md p-6">
               <svg className="w-16 h-16 mx-auto mb-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              <p className="text-text-secondary mb-4">No video loaded</p>
-              <Link
-                to="/"
-                className="px-4 py-2 rounded-lg bg-accent text-primary font-medium hover:bg-accent/80 transition-colors"
-              >
-                Go to Dashboard
-              </Link>
+              <p className="text-text-secondary mb-4">Upload a video to start editing</p>
+              
+              {/* Direct upload form */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block mb-2 text-sm font-medium">Video File (mp4, mov, avi, mkv)</label>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoUpload}
+                    className="w-full text-sm text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-accent file:text-primary file:font-medium hover:file:bg-accent/80"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-2 text-sm font-medium">Subtitle File (SRT) - Optional</label>
+                  <input
+                    type="file"
+                    accept=".srt"
+                    onChange={handleSubtitleUpload}
+                    className="w-full text-sm text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-border file:text-text-primary file:font-medium hover:file:bg-border/80"
+                  />
+                </div>
+              </div>
+              
+              {error && <p className="mt-4 text-red-500 text-sm">{error}</p>}
             </div>
           </div>
         )}
