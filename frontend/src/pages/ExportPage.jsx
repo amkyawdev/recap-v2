@@ -195,25 +195,37 @@ export default function ExportPage() {
   };
   
   const handleDownloadSRT = async () => {
+    // Generate SRT file client-side
+    const generateSRT = (entries) => {
+      return entries.map((entry, i) => {
+        const start = formatTimestamp(entry.startTime);
+        const end = formatTimestamp(entry.endTime);
+        return `${i + 1}\n${start} --> ${end}\n${entry.text}\n`;
+      }).join('\n');
+    };
+    
+    const formatTimestamp = (seconds) => {
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+      const ms = Math.round((seconds % 1) * 1000);
+      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')},${ms.toString().padStart(3, '0')}`;
+    };
+    
     if (!videoFile || subtitles.length === 0) return;
     
-    try {
-      const response = await fetch(`${API_BASE}/subtitle/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entries: subtitles })
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Save failed');
-      }
-      
-      window.open(`/uploads/${data.filename}`, '_blank');
-    } catch (err) {
-      setError(err.message);
-    }
+    // Create downloadable SRT
+    const srtContent = generateSRT(subtitles);
+    const blob = new Blob([srtContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'subtitles.srt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
   
   return (
@@ -256,6 +268,65 @@ export default function ExportPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Preview Section */}
+          <div className="bg-secondary rounded-xl p-6">
+            <h2 className="text-lg font-semibold mb-4">Preview</h2>
+            
+            <div className="relative bg-primary rounded-lg overflow-hidden">
+              <video
+                src={`/uploads/${videoFile?.filename}`}
+                controls
+                className="w-full max-h-[400px]"
+                crossOrigin="anonymous"
+              >
+                {subtitleFile?.filename && (
+                  <track
+                    kind="subtitles"
+                    src={`/uploads/${subtitleFile?.filename}`}
+                    default
+                  />
+                )}
+              </video>
+              
+              {/* Subtitle overlay preview */}
+              {subtitles.length > 0 && (
+                <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-8">
+                  <div className="max-w-[80%] text-center">
+                    {subtitles
+                      .filter(s => {
+                        const videoEl = document.querySelector('video');
+                        const ct = videoEl?.currentTime || 0;
+                        return ct >= s.startTime && ct <= s.endTime;
+                      })
+                      .slice(0, 1)
+                      .map((sub, i) => (
+                        <span
+                          key={i}
+                          style={{
+                            fontSize: subtitleStyle.fontSize || '24px',
+                            color: subtitleStyle.fontColor || '#FFFFFF',
+                            backgroundColor: subtitleStyle.bgColor 
+                              ? subtitleStyle.bgColor.replace(`@${subtitleStyle.bgOpacity}`, '')
+                                    .replace('@', '') || 'rgba(0,0,0,0.5)'
+                              : 'rgba(0,0,0,0.5)',
+                            fontFamily: subtitleStyle.fontFamily || 'Arial',
+                            padding: '8px 16px',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          {sub.text}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <p className="text-xs text-text-secondary mt-2">
+              Preview shows subtitles with your applied style
+            </p>
+          </div>
+          
           {/* Export settings */}
           <div className="bg-secondary rounded-xl p-6">
             <h2 className="text-lg font-semibold mb-4">Export Settings</h2>
@@ -423,6 +494,18 @@ export default function ExportPage() {
               >
                 Download Video
               </button>
+            )}
+            
+            {/* Download original video preview */}
+            {videoFile && (
+              <a
+                href={`/uploads/${videoFile.filename}`}
+                download
+                target="_blank"
+                className="px-6 py-3 rounded-lg border border-border hover:bg-border transition-colors inline-flex items-center"
+              >
+                Download Original
+              </a>
             )}
             
             {subtitles.length > 0 && (
