@@ -278,6 +278,22 @@ export default function ExportPage() {
     URL.revokeObjectURL(url);
   };
   
+  // Download video (original)
+  const downloadOriginal = () => {
+    if (videoFile?.url) {
+      // Local blob URL - download directly
+      const a = document.createElement('a');
+      a.href = videoFile.url;
+      a.download = videoFile.filename || 'video.mp4';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else if (videoFile?.filename) {
+      // Backend URL - open in new tab
+      window.open(`/uploads/${videoFile.filename}`, '_blank');
+    }
+  };
+  
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-2">Export</h1>
@@ -537,25 +553,17 @@ export default function ExportPage() {
               {isExporting ? 'Exporting...' : 'Export Video'}
             </button>
             
-            {exportResult && (
+            {/* Download buttons */}
+            {videoFile && (
               <button
-                onClick={handleDownloadVideo}
+                onClick={downloadOriginal}
                 className="px-6 py-3 rounded-lg border border-border hover:bg-border transition-colors"
               >
                 Download Video
               </button>
             )}
             
-            {/* Download original */}
-            {videoFile && (
-              <button
-                onClick={downloadOriginal}
-                className="px-6 py-3 rounded-lg border border-border hover:bg-border transition-colors"
-              >
-                Download Original
-              </button>
-            )}
-            
+            {/* Download SRT */}
             {subtitles.length > 0 && (
               <button
                 onClick={handleDownloadSRT}
