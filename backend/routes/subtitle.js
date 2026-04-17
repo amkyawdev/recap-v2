@@ -225,7 +225,8 @@ router.post('/save', (req, res) => {
 // Translation using Mistral AI (8x7B model)
 router.post('/translate', async (req, res) => {
   try {
-    const { entries, targetLanguage = 'my', sourceLanguage = 'en' } = req.body;
+    const { entries, sourceLanguage = 'en' } = req.body;
+    const targetLanguage = 'my'; // Force Myanmar only
     
     if (!entries || !Array.isArray(entries)) {
       return res.status(400).json({ error: 'entries array is required' });
